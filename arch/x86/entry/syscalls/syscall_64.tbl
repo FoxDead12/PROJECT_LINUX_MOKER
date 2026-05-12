@@ -395,12 +395,18 @@
 468	common	file_getattr		sys_file_getattr
 469	common	file_setattr		sys_file_setattr
 470	common	listns			sys_listns
+#ifdef CONFIG_MOKER_FRAMEWORK
+471 common moker_tracing sys_moker_tracing
+472 common moker_mutex_lock sys_moker_mutex_lock
+473 common moker_mutex_unlock sys_moker_mutex_unlock
+#endif
 
 #
 # Due to a historical design error, certain syscalls are numbered differently
 # in x32 as compared to native x86_64.  These syscalls have numbers 512-547.
 # Do not add new syscalls to this range.  Numbers 548 and above are available
 # for non-x32 use.
+
 #
 512	x32	rt_sigaction		compat_sys_rt_sigaction
 513	x32	rt_sigreturn		compat_sys_x32_rt_sigreturn

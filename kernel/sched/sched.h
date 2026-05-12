@@ -92,6 +92,14 @@ struct cpuidle_state;
 #include "cpupri.h"
 #include "cpudeadline.h"
 
+#ifdef CONFIG_MOKER_TRACING
+#include "../moker/trace.h"
+#endif
+
+#ifdef CONFIG_MOKER_MUTEX_PIP
+#include "../moker/pip/pip_mutex.h"
+#endif
+
 /* task_struct::on_rq states: */
 #define TASK_ON_RQ_QUEUED	1
 #define TASK_ON_RQ_MIGRATING	2

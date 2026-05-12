@@ -5530,6 +5530,10 @@ void sched_tick(void)
 	rq_lock(rq, &rf);
 	donor = rq->donor;
 
+#ifdef CONFIG_MOKER_TRACING
+	moker_trace(SCHED_TICK, donor, -1);
+#endif
+
 	psi_account_irqtime(rq, donor, NULL);
 
 	update_rq_clock(rq);
@@ -6869,6 +6873,11 @@ keep_resched:
 					     prev->se.sched_delayed);
 
 		trace_sched_switch(preempt, prev, next, prev_state);
+
+#ifdef CONFIG_MOKER_TRACING
+		moker_trace(SWITCH_AWAY, prev, -1);
+		moker_trace(SWITCH_TO, next, -1);
+#endif
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
@@ -8613,6 +8622,10 @@ void __init sched_init(void)
 	INIT_LIST_HEAD(&root_task_group.siblings);
 	autogroup_init(&init_task);
 #endif /* CONFIG_CGROUP_SCHED */
+
+#ifdef CONFIG_MOKER_MUTEX_PIP
+		init_pip_mutex();
+#endif
 
 	for_each_possible_cpu(i) {
 		struct rq *rq;

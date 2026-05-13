@@ -36,7 +36,7 @@ int sys_moker_mutex_lock () {
 }
 
 int sys_moker_mutex_unlock (){
-#ifdef CONFIG_MOKER_MUTEX_LIFO
+#ifdef CONFIG_MOKER_MUTEX_PIP
   unlock_pip_mutex();
 #endif
 

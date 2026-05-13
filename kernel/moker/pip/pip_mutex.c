@@ -21,6 +21,7 @@ init_pip_mutex (void) {
   wq.owner_prio_change = false;
   wq.owner_original_prio = 0;
   wq.owner_original_policy = 0;
+
 }
 
 /**
@@ -47,8 +48,9 @@ lock_pip_mutex (void) {
         wq.owner_prio_change = true;
         wq.owner_original_prio = wq.owner->rt_priority;
         wq.owner_original_policy = wq.owner->policy;
-        printk("MOKER: lock_pip_mutex[%d] update prio and policy of mutex owner\n", p->pid);
       }
+
+      printk("MOKER: lock_pip_mutex[%d] update prio and policy of mutex owner new: %d old: %d\n", p->pid, p->rt_priority, wq.owner_original_prio);
 
       struct sched_param param;
       param.sched_priority = p->rt_priority;
@@ -67,13 +69,13 @@ lock_pip_mutex (void) {
     }
 
     printk("MOKER: lock_pip_mutex[%d] set flag after while\n", p->pid);
+    set_current_state(TASK_RUNNING);
   }
 
 #ifdef CONFIG_MOKER_TRACING
-  moker_trace(MUTEX_LOCK, p, -1);
+  moker_trace(MUTEX_LOCK, p, 5);
 #endif
 
-  set_current_state(TASK_RUNNING);
   wq.owner = p;
 
 }
@@ -89,15 +91,9 @@ unlock_pip_mutex (void) {
   atomic_set(&wq.flag, 0);
   printk("MOKER: unlock_pip_mutex[%d] set flag to 0 \n", p->pid);
 
-  if ( t ) {
-    if ( !wake_up_process(t) ) {
-      printk(KERN_ERR "BUG: wake up process failed: %d\n", p->pid);
-    }
-  }
-
   // ... restore prio and policy of thread
   if ( wq.owner_prio_change ) {
-    printk("MOKER: unlock_pip_mutex[%d] restore main setting prio and policy\n", p->pid);
+    printk("MOKER: unlock_pip_mutex[%d] restore main setting prio and policy default: %d temporary: %d\n", p->pid, wq.owner_original_prio, p->rt_priority);
     struct sched_param param;
     param.sched_priority = wq.owner_original_prio;
     sched_setscheduler(p, wq.owner_original_policy, &param);
@@ -109,9 +105,15 @@ unlock_pip_mutex (void) {
   wq.owner_original_prio = 0;
   wq.owner_original_policy = 0;
 
-// #ifdef CONFIG_MOKER_TRACING
-//   moker_trace(MUTEX_UNLOCK, p, -1);
-// #endif
+  if ( t ) {
+    if ( !wake_up_process(t) ) {
+      printk(KERN_ERR "BUG: wake up process failed: %d\n", p->pid);
+    }
+  }
+
+#ifdef CONFIG_MOKER_TRACING
+  moker_trace(MUTEX_UNLOCK, p, 7);
+#endif
 
 }
 
@@ -147,7 +149,7 @@ enqueue_pip_mutex_task (struct task_struct* p) {
   }
 
 #ifdef CONFIG_MOKER_TRACING
-  moker_trace(ENQUEUE_WQ, p, -1);
+  moker_trace(ENQUEUE_WQ, p, 4);
 #endif
 
   return ret;
@@ -161,6 +163,8 @@ enqueue_pip_mutex_task (struct task_struct* p) {
 struct task_struct*
 dequeue_pip_mutex_task (void) {
 
+  printk("MOKER: dequeue_pip_mutex_task[%d] start\n", current->pid);
+
   struct task_struct* p = NULL;
   struct pip_mutex_node* t = NULL;
 
@@ -170,22 +174,29 @@ dequeue_pip_mutex_task (void) {
   if ( !list_empty(&wq.tasks) ) {
     // ... get first element of list ...
     t = list_first_entry(&wq.tasks, struct pip_mutex_node, node);
+
     // ... get task ...
     p = t->task;
+    printk("MOKER: dequeue_pip_mutex_task[%d] dequeue tast %d\n", current->pid, p->pid);
+
+    list_del(&t->node);
+  } else {
+    printk("MOKER: dequeue_pip_mutex_task[%d] queue is empty\n", current->pid);
   }
 
   raw_spin_unlock(&wq.lock);
 
+  printk("MOKER: dequeue_pip_mutex_task[%d] out spin lock\n", current->pid);
+
   if (t) {
-    list_del(&t->node);
     kfree(t);
   }
 
-// #ifdef CONFIG_MOKER_TRACING
-//   if ( p ) {
-//     moker_trace(DEQUEUE_WQ, p, -1);
-//   }
-// #endif
+#ifdef CONFIG_MOKER_TRACING
+  if ( p ) {
+    moker_trace(DEQUEUE_WQ, p, 6);
+  }
+#endif
 
   return p;
 }

@@ -5531,7 +5531,7 @@ void sched_tick(void)
 	donor = rq->donor;
 
 #ifdef CONFIG_MOKER_TRACING
-	moker_trace(SCHED_TICK, donor, -1);
+	moker_trace(SCHED_TICK, donor, 1);
 #endif
 
 	psi_account_irqtime(rq, donor, NULL);
@@ -6876,7 +6876,7 @@ keep_resched:
 
 #ifdef CONFIG_MOKER_TRACING
 		moker_trace(SWITCH_AWAY, prev, -1);
-		moker_trace(SWITCH_TO, next, -1);
+		moker_trace(SWITCH_TO, 	 next, 3);
 #endif
 
 		/* Also unlocks the rq: */

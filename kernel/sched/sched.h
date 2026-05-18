@@ -100,6 +100,10 @@ struct cpuidle_state;
 #include "../moker/pip/pip_mutex.h"
 #endif
 
+#ifdef CONFIG_MOKER_MUTEX_PCP
+#include "../moker/pcp/pcp_mutex.h"
+#endif
+
 /* task_struct::on_rq states: */
 #define TASK_ON_RQ_QUEUED	1
 #define TASK_ON_RQ_MIGRATING	2

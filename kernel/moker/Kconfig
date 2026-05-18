@@ -14,4 +14,9 @@ menu "MOKER framework"
   default y
   depends on MOKER_FRAMEWORK
 
+  config MOKER_MUTEX_PCP
+  bool "MOKER mutex policy: PCP "
+  default y
+  depends on MOKER_FRAMEWORK
+
 endmenu

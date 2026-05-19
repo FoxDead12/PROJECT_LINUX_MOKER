@@ -8624,7 +8624,11 @@ void __init sched_init(void)
 #endif /* CONFIG_CGROUP_SCHED */
 
 #ifdef CONFIG_MOKER_MUTEX_PIP
-		init_pip_mutex();
+	init_pip_mutex();
+#endif
+
+#ifdef CONFIG_MOKER_MUTEX_PCP
+	init_pcp_mutex();
 #endif
 
 	for_each_possible_cpu(i) {

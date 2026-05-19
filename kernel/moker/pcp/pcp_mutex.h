@@ -22,9 +22,10 @@ struct pcp_mutex_node {
   struct task_struct* task;
 };
 
-struct pcp_mutex_wq* init_pcp_mutex(unsigned int ceiling_prio);
-void lock_pcp_mutex(struct pcp_mutex_wq* wq);
-int enqueue_pcp_mutex_task(struct pcp_mutex_wq* wq, struct task_struct* p);
-
+void init_pcp_mutex(void);
+int lock_pcp_mutex(void);
+int unlock_pcp_mutex(void);
+int enqueue_pcp_mutex_task(struct task_struct* p);
+struct task_struct* dequeue_pcp_mutex_task(void);
 
 #endif

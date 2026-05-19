@@ -399,6 +399,8 @@
 471 common moker_tracing sys_moker_tracing
 472 common moker_mutex_lock sys_moker_mutex_lock
 473 common moker_mutex_unlock sys_moker_mutex_unlock
+474 common moker_pcp_mutex_lock sys_moker_pcp_mutex_lock
+475 common moker_pcp_mutex_unlock sys_moker_pcp_mutex_unlock
 #endif
 
 #

@@ -25,85 +25,115 @@ init_pip_mutex (void) {
 }
 
 /**
- * Method used to a process lock a resource
+ * Method used to a task lock the resource
  */
 void
 lock_pip_mutex (void) {
 
   struct task_struct* p = current;
+  bool scheduler_up = false;
 
   /**
   * Implemente PIP logic
   * 1º Run bigest priority task
   * 2º If task running has bigges priority need up
   */
+
   if ( atomic_add_unless(&wq.flag, 1, 1) ) {
-    // ... task will keep the shared resource ...
-    printk("MOKER: lock_pip_mutex[%d] first try catch mutex\n", p->pid);
-  } else {
-    // ... task can't run, need check if is necessary up the prio of owner ...
-    if ( wq.owner != NULL && p->prio < wq.owner->prio ) {
-      // ... need up the prio of owner task
+    printk("MOKER[%d][PIP] enqueue task\n", p->pid);
+    wq.owner = p;
+    return;
+  }
+
+  // ... update wait queue params
+  raw_spin_lock(&wq.lock);
+
+  if ( wq.owner ) {
+    if ( p->prio < wq.owner->prio ) {
       if ( !wq.owner_prio_change ) {
         wq.owner_prio_change = true;
         wq.owner_original_prio = wq.owner->rt_priority;
         wq.owner_original_policy = wq.owner->policy;
+        printk("MOKER[%d][PIP] store owner original props\n", p->pid);
       }
-
-      printk("MOKER: lock_pip_mutex[%d] update prio and policy of mutex owner new: %d old: %d\n", p->pid, p->rt_priority, wq.owner_original_prio);
-
-      struct sched_param param;
-      param.sched_priority = p->rt_priority;
-      sched_setscheduler(wq.owner, p->policy, &param);
-      printk("MOKER: lock_pip_mutex[%d] set new params to scheduler\n", p->pid);
+      scheduler_up = true;
     }
-
-    enqueue_pip_mutex_task(p);
-    printk("MOKER: lock_pip_mutex[%d] enqueue task\n", p->pid);
-
-    // ... wait until lock resource ...
-    while ( !atomic_add_unless(&wq.flag, 1, 1) ) {
-      set_current_state(TASK_INTERRUPTIBLE);
-      printk("MOKER: lock_pip_mutex[%d] task in while will wait to set flag\n", p->pid);
-      schedule();
-    }
-
-    printk("MOKER: lock_pip_mutex[%d] set flag after while\n", p->pid);
-    set_current_state(TASK_RUNNING);
   }
 
-#ifdef CONFIG_MOKER_TRACING
-  moker_trace(MUTEX_LOCK, p, 5);
-#endif
+  raw_spin_unlock(&wq.lock);
 
+  // ... update scheduler ...
+  if ( scheduler_up ) {
+    struct sched_param param;
+    param.sched_priority = p->rt_priority;
+    sched_setscheduler(wq.owner, p->policy, &param);
+    printk("MOKER[%d][PIP] update scheduler\n", p->pid);
+  }
+
+  enqueue_pip_mutex_task(p);
+  printk("MOKER[%d][PIP] enqueue\n", p->pid);
+
+  for (;;) {
+    // ... force task to set status sleep
+    set_current_state(TASK_INTERRUPTIBLE);
+
+    // ... check if win mutex/resource
+    if ( atomic_add_unless(&wq.flag, 1, 1) ) {
+      break;
+    }
+
+    printk("MOKER[%d][PIP] task will sleep\n", p->pid);
+
+    // ... sleep ...
+    schedule();
+  }
+
+  // ... set the new owner of mutex
+  set_current_state(TASK_RUNNING);
   wq.owner = p;
+
+  printk("MOKER[%d][PIP] enqueue task\n", p->pid);
+  return;
 
 }
 
+/**
+ * Method used to a task unlock the resource
+ */
 void
 unlock_pip_mutex (void) {
+
   struct task_struct* p = current;
   struct task_struct* t = NULL;
+  bool scheduler_up = false;
 
   t = dequeue_pip_mutex_task();
-  printk("MOKER: unlock_pip_mutex[%d] deuque task\n", p->pid);
+  printk("MOKER[%d][PIP][DEQ] dequeue task\n", p->pid);
 
-  atomic_set(&wq.flag, 0);
-  printk("MOKER: unlock_pip_mutex[%d] set flag to 0 \n", p->pid);
+  // ... update wait queue params
+  raw_spin_lock(&wq.lock);
 
-  // ... restore prio and policy of thread
   if ( wq.owner_prio_change ) {
-    printk("MOKER: unlock_pip_mutex[%d] restore main setting prio and policy default: %d temporary: %d\n", p->pid, wq.owner_original_prio, p->rt_priority);
-    struct sched_param param;
-    param.sched_priority = wq.owner_original_prio;
-    sched_setscheduler(p, wq.owner_original_policy, &param);
+    scheduler_up = true;
   }
 
-  printk("MOKER: unlock_pip_mutex[%d] restore mutex settings\n", p->pid);
   wq.owner = NULL;
   wq.owner_prio_change = false;
   wq.owner_original_prio = 0;
   wq.owner_original_policy = 0;
+
+  printk("MOKER[%d][PIP][DEQ] reset params\n", p->pid);
+
+  raw_spin_unlock(&wq.lock);
+
+  atomic_set(&wq.flag, 0);
+
+  if ( scheduler_up ) {
+    struct sched_param param;
+    param.sched_priority = wq.owner_original_prio;
+    sched_setscheduler(p, wq.owner_original_policy, &param);
+    printk("MOKER[%d][PIP][DEQ] update scheduler\n", p->pid);
+  }
 
   if ( t ) {
     if ( !wake_up_process(t) ) {
@@ -111,92 +141,79 @@ unlock_pip_mutex (void) {
     }
   }
 
-#ifdef CONFIG_MOKER_TRACING
-  moker_trace(MUTEX_UNLOCK, p, 7);
-#endif
+  return;
 
 }
 
 /**
- * Method to add a new process/task to waiting queue
+ * Method to add a new task to waiting queue
  */
 int
 enqueue_pip_mutex_task (struct task_struct* p) {
 
-  int ret = -1;
-  bool inserted = false;
   struct pip_mutex_node* pos = NULL;
   struct pip_mutex_node* t = kmalloc(sizeof(struct pip_mutex_node), GFP_KERNEL);
+  bool inserted = false;
 
-  if ( t ) {
-    t->task = p;
-    raw_spin_lock(&wq.lock);
-
-    list_for_each_entry(pos, &wq.tasks, node) {
-      if ( p->prio < pos->task->prio ) {
-        list_add_tail(&t->node, &pos->node);
-        inserted = true;
-        break;
-      }
-    }
-
-    if ( !inserted ) {
-      list_add_tail(&t->node, &wq.tasks);
-    }
-
-    raw_spin_unlock(&wq.lock);
-    ret = 0;
+  if ( !t ) {
+    return -1;
   }
 
-#ifdef CONFIG_MOKER_TRACING
-  moker_trace(ENQUEUE_WQ, p, 4);
-#endif
+  // ... set task to new node ...
+  t->task = p;
 
-  return ret;
+  // ... add new node to list ...
+  raw_spin_lock(&wq.lock);
 
+  list_for_each_entry(pos, &wq.tasks, node) {
+    if ( p->prio < pos->task->prio ) {
+      list_add_tail(&t->node, &pos->node);
+      inserted = true;
+      break;
+    }
+  }
+
+  // ... if new task is the higest priority ...
+  if ( !inserted ) {
+    list_add_tail(&t->node, &wq.tasks);
+  }
+
+  raw_spin_unlock(&wq.lock);
+
+  return 0;
 }
 
-
 /**
- * Method to remove a process/task from waiting queue
+ * Method to remove a task from waiting queue
  */
 struct task_struct*
 dequeue_pip_mutex_task (void) {
-
-  printk("MOKER: dequeue_pip_mutex_task[%d] start\n", current->pid);
 
   struct task_struct* p = NULL;
   struct pip_mutex_node* t = NULL;
 
   raw_spin_lock(&wq.lock);
 
-  // ... this logic is from LIFO need change ...
   if ( !list_empty(&wq.tasks) ) {
-    // ... get first element of list ...
+
+    // ... get first element of array, because is order by prio ...
     t = list_first_entry(&wq.tasks, struct pip_mutex_node, node);
 
-    // ... get task ...
+    // ... point to task ...
     p = t->task;
-    printk("MOKER: dequeue_pip_mutex_task[%d] dequeue tast %d\n", current->pid, p->pid);
 
+    // ... remove node from list ...
     list_del(&t->node);
-  } else {
-    printk("MOKER: dequeue_pip_mutex_task[%d] queue is empty\n", current->pid);
+
   }
 
   raw_spin_unlock(&wq.lock);
 
-  printk("MOKER: dequeue_pip_mutex_task[%d] out spin lock\n", current->pid);
-
-  if (t) {
+  // ... clean node ...
+  if ( t ) {
     kfree(t);
   }
 
-#ifdef CONFIG_MOKER_TRACING
-  if ( p ) {
-    moker_trace(DEQUEUE_WQ, p, 6);
-  }
-#endif
-
   return p;
+
 }

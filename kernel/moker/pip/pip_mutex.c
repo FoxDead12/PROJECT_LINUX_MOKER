@@ -181,6 +181,7 @@ enqueue_pip_mutex_task (struct task_struct* p) {
   raw_spin_unlock(&wq.lock);
 
   return 0;
+
 }
 
 /**

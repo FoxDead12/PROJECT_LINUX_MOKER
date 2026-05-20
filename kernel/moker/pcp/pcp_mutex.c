@@ -36,7 +36,7 @@ lock_pcp_mutex (void) {
     // ... current stay bloqued (lose)
 
     enqueue_pcp_mutex_task(p);
-    printk("MOKER: lock_pip_mutex[%d] enqueue task\n", p->pid);
+    printk("MOKER: lock_pcp_mutex[%d] enqueue task\n", p->pid);
 
     while ( !atomic_add_unless(&wq_pcp.flag, 1, 1) ) {
       set_current_state(TASK_INTERRUPTIBLE);
@@ -48,7 +48,11 @@ lock_pcp_mutex (void) {
     set_current_state(TASK_RUNNING);
   }
 
-  if ( wq_pcp.owner != NULL && p->rt_priority < wq_pcp.ceiling_prio ) {
+  printk("MOKER: lock_pcp_mutex[%d] prio: %d rt_prio: %d", p->pid, p->prio, p->rt_priority);
+
+  wq_pcp.owner = p;
+
+  if ( p->rt_priority < wq_pcp.ceiling_prio ) {
     // ... update prio to ceiling prio
     if ( !wq_pcp.owner_prio_change ) {
       wq_pcp.owner_prio_change = true;
@@ -62,8 +66,6 @@ lock_pcp_mutex (void) {
     sched_setscheduler(p, p->policy, &param);
     printk("MOKER: lock_pcp_mutex[%d] set new params to scheduler\n", p->pid);
   }
-
-  wq_pcp.owner = p;
 
 #ifdef CONFIG_MOKER_TRACING
   moker_trace(MUTEX_LOCK, p, 5);
@@ -85,13 +87,13 @@ unlock_pcp_mutex (void) {
 
   // ... restore prio of task
   if ( wq_pcp.owner_prio_change ) {
-    printk("MOKER: unlock_pip_mutex[%d] restore main setting prio and policy default: %d temporary: %d\n", p->pid, wq_pcp.owner_original_prio, p->rt_priority);
+    printk("MOKER: unlock_pcp_mutex[%d] restore main setting prio and policy default: %d temporary: %d\n", p->pid, wq_pcp.owner_original_prio, p->rt_priority);
     struct sched_param param;
     param.sched_priority = wq_pcp.owner_original_prio;
     sched_setscheduler(p, p->policy, &param);
   }
 
-  printk("MOKER: unlock_pip_mutex[%d] restore mutex settings\n", p->pid);
+  printk("MOKER: unlock_pcp_mutex[%d] restore mutex settings\n", p->pid);
   wq_pcp.owner = NULL;
   wq_pcp.owner_original_prio = 0;
 

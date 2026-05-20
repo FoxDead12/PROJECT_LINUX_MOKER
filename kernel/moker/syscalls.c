@@ -54,6 +54,8 @@ SYSCALL_DEFINE0(moker_pcp_mutex_lock) {
 }
 
 int sys_moker_pcp_mutex_lock () {
+  printk("MOKER: sys_moker_pcp_mutex_lock:[%d]\n", current->pid);
+
 #ifdef CONFIG_MOKER_MUTEX_PCP
   lock_pcp_mutex();
 #endif
@@ -65,7 +67,8 @@ SYSCALL_DEFINE0(moker_pcp_mutex_unlock) {
   return sys_moker_pcp_mutex_unlock();
 }
 
-int sys_moker_pcp_mutex_unlock (){
+int sys_moker_pcp_mutex_unlock () {
+  printk("MOKER: sys_moker_pcp_mutex_unlock:[%d]\n", current->pid);
 #ifdef CONFIG_MOKER_MUTEX_PCP
   unlock_pcp_mutex();
 #endif

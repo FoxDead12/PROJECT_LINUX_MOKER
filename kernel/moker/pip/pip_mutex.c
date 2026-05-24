@@ -110,12 +110,19 @@ unlock_pip_mutex (void) {
   t = dequeue_pip_mutex_task();
   printk("MOKER[%d][PIP][DEQ] dequeue task\n", p->pid);
 
-  // ... update wait queue params
-  raw_spin_lock(&wq.lock);
-
   if ( wq.owner_prio_change ) {
     scheduler_up = true;
   }
+
+  if ( scheduler_up ) {
+    struct sched_param param;
+    param.sched_priority = wq.owner_original_prio;
+    sched_setscheduler(p, wq.owner_original_policy, &param);
+    printk("MOKER[%d][PIP][DEQ] update scheduler\n", p->pid);
+  }
+
+  // ... update wait queue params
+  raw_spin_lock(&wq.lock);
 
   wq.owner = NULL;
   wq.owner_prio_change = false;
@@ -127,13 +134,6 @@ unlock_pip_mutex (void) {
   raw_spin_unlock(&wq.lock);
 
   atomic_set(&wq.flag, 0);
-
-  if ( scheduler_up ) {
-    struct sched_param param;
-    param.sched_priority = wq.owner_original_prio;
-    sched_setscheduler(p, wq.owner_original_policy, &param);
-    printk("MOKER[%d][PIP][DEQ] update scheduler\n", p->pid);
-  }
 
   if ( t ) {
     if ( !wake_up_process(t) ) {

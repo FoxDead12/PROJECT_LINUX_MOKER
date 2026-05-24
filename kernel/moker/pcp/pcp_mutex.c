@@ -95,12 +95,19 @@ unlock_pcp_mutex (void) {
   t = dequeue_pcp_mutex_task();
   printk("MOKER[%d][PCP][DEQ] dequeue task\n", p->pid);
 
-  // ... update wait queue params
-  raw_spin_lock(&wq_pcp.lock);
-
   if ( wq_pcp.owner_prio_change ) {
     scheduler_up = true;
   }
+
+  if ( scheduler_up ) {
+    struct sched_param param;
+    param.sched_priority = wq_pcp.owner_original_prio;
+    sched_setscheduler(p, p->policy, &param);
+    printk("MOKER[%d][PCP][DEQ] update scheduler\n", p->pid);
+  }
+
+  // ... update wait queue params
+  raw_spin_lock(&wq_pcp.lock);
 
   wq_pcp.owner = NULL;
   wq_pcp.owner_original_prio = 0;

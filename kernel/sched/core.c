@@ -5530,6 +5530,10 @@ void sched_tick(void)
 	rq_lock(rq, &rf);
 	donor = rq->donor;
 
+	#ifdef CONFIG_MOKER_TRACING
+	moker_trace(SCHED_TICK,donor, -1);
+	#endif
+
 	psi_account_irqtime(rq, donor, NULL);
 
 	update_rq_clock(rq);
@@ -6869,6 +6873,11 @@ keep_resched:
 					     prev->se.sched_delayed);
 
 		trace_sched_switch(preempt, prev, next, prev_state);
+
+		#ifdef CONFIG_MOKER_TRACING
+		moker_trace(SWITCH_AWAY, prev, -1);
+		moker_trace(SWITCH_TO, next, -1);
+		#endif
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
@@ -8557,6 +8566,10 @@ void __init sched_init(void)
 	/* Make sure the linker didn't screw up */
 	BUG_ON(!sched_class_above(&stop_sched_class, &dl_sched_class));
 	BUG_ON(!sched_class_above(&dl_sched_class, &rt_sched_class));
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+	BUG_ON(!sched_class_above(&dl_sched_class, &__rm_sched_class));
+	BUG_ON(!sched_class_above(&__rm_sched_class, &rt_sched_class));
+#endif
 	BUG_ON(!sched_class_above(&rt_sched_class, &fair_sched_class));
 	BUG_ON(!sched_class_above(&fair_sched_class, &idle_sched_class));
 #ifdef CONFIG_SCHED_CLASS_EXT
@@ -8623,6 +8636,11 @@ void __init sched_init(void)
 		rq->calc_load_active = 0;
 		rq->calc_load_update = jiffies + LOAD_FREQ;
 		init_cfs_rq(&rq->cfs);
+
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+		init_rm_rq(&rq->lf);
+#endif
+
 		init_rt_rq(&rq->rt);
 		init_dl_rq(&rq->dl);
 #ifdef CONFIG_FAIR_GROUP_SCHED

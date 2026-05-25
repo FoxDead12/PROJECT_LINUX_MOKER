@@ -53,6 +53,10 @@
 #include <generated/rq-offsets.h>
 #endif
 
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+#include "../../kernel/moker/rm/rm_task.h"
+#endif
+
 /* task_struct member predeclarations (sorted alphabetically): */
 struct audit_context;
 struct bio_list;
@@ -869,6 +873,11 @@ struct task_struct {
 	unsigned int			rt_priority;
 
 	struct sched_entity		se;
+
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+	struct sched_rm_entity rm;
+#endif
+
 	struct sched_rt_entity		rt;
 	struct sched_dl_entity		dl;
 	struct sched_dl_entity		*dl_server;

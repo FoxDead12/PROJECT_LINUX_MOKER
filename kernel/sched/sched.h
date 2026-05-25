@@ -92,6 +92,14 @@ struct cpuidle_state;
 #include "cpupri.h"
 #include "cpudeadline.h"
 
+#ifdef CONFIG_MOKER_TRACING
+#include "../moker/trace/trace.h"
+#endif
+
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+# include "../moker/rm/rm_rq.h"
+#endif
+
 /* task_struct::on_rq states: */
 #define TASK_ON_RQ_QUEUED	1
 #define TASK_ON_RQ_MIGRATING	2
@@ -1151,6 +1159,10 @@ struct rq {
 	struct dl_rq		dl;
 #ifdef CONFIG_SCHED_CLASS_EXT
 	struct scx_rq		scx;
+#endif
+
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+	struct rm_rq rm;
 #endif
 
 	struct sched_dl_entity	fair_server;
@@ -2689,6 +2701,9 @@ extern struct sched_class __sched_class_lowest[];
 
 extern const struct sched_class stop_sched_class;
 extern const struct sched_class dl_sched_class;
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+extern const struct sched_class rm_sched_class;
+#endif
 extern const struct sched_class rt_sched_class;
 extern const struct sched_class fair_sched_class;
 extern const struct sched_class idle_sched_class;

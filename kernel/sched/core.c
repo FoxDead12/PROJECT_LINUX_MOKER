@@ -5530,9 +5530,9 @@ void sched_tick(void)
 	rq_lock(rq, &rf);
 	donor = rq->donor;
 
-	#ifdef CONFIG_MOKER_TRACING
-	moker_trace(SCHED_TICK,donor, -1);
-	#endif
+	// #ifdef CONFIG_MOKER_TRACING
+	// moker_trace(SCHED_TICK,donor, -1);
+	// #endif
 
 	psi_account_irqtime(rq, donor, NULL);
 
@@ -6874,10 +6874,16 @@ keep_resched:
 
 		trace_sched_switch(preempt, prev, next, prev_state);
 
-		#ifdef CONFIG_MOKER_TRACING
-		moker_trace(SWITCH_AWAY, prev, -1);
-		moker_trace(SWITCH_TO, next, -1);
-		#endif
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+		if(rm_policy(prev->policy)|| rm_policy(next->policy)){
+#endif
+#ifdef CONFIG_MOKER_TRACING
+			moker_trace(SWITCH_AWAY, prev, -1);
+			moker_trace(SWITCH_TO, next, -1);
+#endif
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+		}
+#endif
 
 		/* Also unlocks the rq: */
 		rq = context_switch(rq, prev, next, &rf);
@@ -7227,6 +7233,11 @@ const struct sched_class *__setscheduler_class(int policy, int prio)
 {
 	if (dl_prio(prio))
 		return &dl_sched_class;
+
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+	if(rm_policy(policy))
+		return &rm_sched_class;
+#endif
 
 	if (rt_prio(prio))
 		return &rt_sched_class;
@@ -8567,8 +8578,8 @@ void __init sched_init(void)
 	BUG_ON(!sched_class_above(&stop_sched_class, &dl_sched_class));
 	BUG_ON(!sched_class_above(&dl_sched_class, &rt_sched_class));
 #ifdef CONFIG_MOKER_SCHED_RM_POLICY
-	BUG_ON(!sched_class_above(&dl_sched_class, &__rm_sched_class));
-	BUG_ON(!sched_class_above(&__rm_sched_class, &rt_sched_class));
+	BUG_ON(!sched_class_above(&dl_sched_class, &rm_sched_class));
+	BUG_ON(!sched_class_above(&rm_sched_class, &rt_sched_class));
 #endif
 	BUG_ON(!sched_class_above(&rt_sched_class, &fair_sched_class));
 	BUG_ON(!sched_class_above(&fair_sched_class, &idle_sched_class));
@@ -8638,7 +8649,7 @@ void __init sched_init(void)
 		init_cfs_rq(&rq->cfs);
 
 #ifdef CONFIG_MOKER_SCHED_RM_POLICY
-		init_rm_rq(&rq->lf);
+		init_rm_rq(&rq->rm);
 #endif
 
 		init_rt_rq(&rq->rt);

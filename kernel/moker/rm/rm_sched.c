@@ -6,10 +6,40 @@
 */
 
 static void enqueue_task_rm (struct rq *rq, struct task_struct *p, int flags) {
+  raw_spin_lock(&rq->rm.lock);
+  list_add(&p->rm.node,&rq->rm.tasks);
+  rq->rm.task = p;
+  rq->rm.nr_running++;
+  add_nr_running(rq, 1);
+  raw_spin_unlock(&rq->rm.lock);
+
+#ifdef CONFIG_MOKER_TRACING
+  moker_trace(ENQUEUE_RQ, p, -1);
+#endif
 
 }
 
 static bool dequeue_task_rm (struct rq *rq, struct task_struct *p, int flags) {
+
+  struct sched_rm_entity *t = NULL;
+
+  raw_spin_lock(&rq->rm.lock);
+  list_del(&p->rm.node);
+
+  if (list_empty(&rq->rm.tasks)){
+    rq->rm.task = NULL;
+  } else {
+    t = list_first_entry(&rq->rm.tasks,struct sched_rm_entity, node);
+    rq->rm.task = container_of(t,struct task_struct, rm);
+  }
+
+  rq->rm.nr_running--;
+  sub_nr_running(rq, 1);
+  raw_spin_unlock(&rq->rm.lock);
+
+#ifdef CONFIG_MOKER_TRACING
+  moker_trace(DEQUEUE_RQ, p, -1);
+#endif
 
   return true;
 }
@@ -35,8 +65,11 @@ static void wakeup_preempt_rm (struct rq *rq, struct task_struct *p, int flags) 
 }
 
 static struct task_struct *pick_task_rm (struct rq *rq, struct rq_flags *rf) {
-
-  return NULL;
+  struct task_struct * p = NULL;
+  raw_spin_lock(&rq->rm.lock);
+  p = rq->rm.task;
+  raw_spin_unlock(&rq->rm.lock);
+  return p;
 }
 
 static void put_prev_task_rm (struct rq *rq, struct task_struct *p, struct task_struct *next) {

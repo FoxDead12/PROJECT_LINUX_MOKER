@@ -11,6 +11,8 @@ enum evt{
   SCHED_TICK,
   SWITCH_AWAY,
   SWITCH_TO,
+  ENQUEUE_RQ,
+  DEQUEUE_RQ
 };
 
 struct trace_evt{

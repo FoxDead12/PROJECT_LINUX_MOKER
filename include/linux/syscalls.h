@@ -1338,4 +1338,8 @@ int __sys_setsockopt(int fd, int level, int optname, char __user *optval,
 	#include "../../kernel/moker/trace/syscalls/syscalls.h"
 #endif
 
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+	#include "../../kernel/moker/rm/syscalls/syscalls.h"
+#endif
+
 #endif

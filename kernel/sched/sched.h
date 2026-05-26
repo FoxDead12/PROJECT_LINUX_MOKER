@@ -215,6 +215,13 @@ static inline int rt_policy(int policy)
 	return policy == SCHED_FIFO || policy == SCHED_RR;
 }
 
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+static inline int rm_policy(int policy)
+{
+	return policy == SCHED_RM;
+}
+#endif
+
 static inline int dl_policy(int policy)
 {
 	return policy == SCHED_DEADLINE;
@@ -223,7 +230,11 @@ static inline int dl_policy(int policy)
 static inline bool valid_policy(int policy)
 {
 	return idle_policy(policy) || fair_policy(policy) ||
-		rt_policy(policy) || dl_policy(policy);
+		rt_policy(policy) || dl_policy(policy)
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+		|| rm_policy(policy)
+#endif
+		;
 }
 
 static inline int task_has_idle_policy(struct task_struct *p)

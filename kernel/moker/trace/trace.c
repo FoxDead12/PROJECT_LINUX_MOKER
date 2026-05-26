@@ -50,6 +50,12 @@ static int dequeue (char *buffer){
       case SWITCH_TO:
         strcpy(evt,"SWT_TO");
         break;
+      case ENQUEUE_RQ:
+        strcpy(evt,"ENQ_RQ");
+        break;
+      case DEQUEUE_RQ:
+        strcpy(evt,"DEQ_RQ");
+        break;
       default:
         strcpy(evt,"UK_EVT");
     }
@@ -136,10 +142,8 @@ void moker_trace(enum evt event, struct task_struct *p, int number){
   if(enabled){
     time = ktime_to_ns(ktime_get());
     enqueue(event,time, number, p);
+    return;
   }
-
-  time = ktime_to_ns(ktime_get());
-  enqueue(event,time, number, p);
 }
 
 void enable_tracing (unsigned int e){

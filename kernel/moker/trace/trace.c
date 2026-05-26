@@ -62,6 +62,7 @@ static int dequeue (char *buffer){
 
     len = sprintf(buffer,"%llu,",trace.events[trace.read_item].time);
     len += sprintf(buffer + len,"%s,",evt);
+    len += sprintf(buffer+len,"%lld,",(long long)trace.events[trace.read_item].period);
     len += sprintf(buffer+len,"*%d*,",(int)trace.events[trace.read_item].number);
     len += sprintf(buffer+len,"%d,",(int)trace.events[trace.read_item].policy);
     len += sprintf(buffer+len,"%d,",(int)trace.events[trace.read_item].prio);
@@ -91,6 +92,7 @@ static int enqueue (enum evt event, unsigned long long time, int number, struct 
   trace.events[trace.write_item].state = p->__state;
   trace.events[trace.write_item].prio = p->prio;
   trace.events[trace.write_item].policy = p->policy;
+  trace.events[trace.write_item].period = p->rm.period;
 
   strcpy(trace.events[trace.write_item].comm, p->comm);
   increment(&trace.write_item);

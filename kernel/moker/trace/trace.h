@@ -24,6 +24,7 @@ struct trace_evt{
   int prio;
   int policy;
   char comm[TRACE_TASK_COMM_LEN];
+  unsigned long long period;
 };
 
 struct trace_evt_buffer{

@@ -398,6 +398,9 @@
 #ifdef CONFIG_MOKER_FRAMEWORK
 471 common moker_tracing sys_moker_tracing
 #endif
+#ifdef CONFIG_MOKER_SCHED_RM_POLICY
+472 common moker_rm_set_period sys_moker_rm_set_period
+#endif
 
 #
 # Due to a historical design error, certain syscalls are numbered differently

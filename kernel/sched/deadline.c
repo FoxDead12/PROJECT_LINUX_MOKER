@@ -3367,8 +3367,6 @@ DEFINE_SCHED_CLASS(dl) = {
 	.queue_mask = 8,
 #endif
 	
-	.queue_mask		= 8,
-
 	.enqueue_task		= enqueue_task_dl,
 	.dequeue_task		= dequeue_task_dl,
 	.yield_task		= yield_task_dl,

@@ -2,6 +2,7 @@
 #ifndef DEFS_H_
 #define DEFS_H_
 
+#define _GNU_SOURCE
 #include <sched.h>
 #include <stdio.h>
 #include <stdlib.h>

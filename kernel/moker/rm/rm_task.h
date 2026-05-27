@@ -3,8 +3,7 @@
 
 struct sched_rm_entity {
 	unsigned long long period;
-	struct list_head node;
-	// struct rb_node node;
+	struct rb_node node;
 };
 
 #endif

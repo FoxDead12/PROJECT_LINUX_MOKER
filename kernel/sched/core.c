@@ -6878,8 +6878,8 @@ keep_resched:
 		if(rm_policy(prev->policy)|| rm_policy(next->policy)){
 #endif
 #ifdef CONFIG_MOKER_TRACING
-			moker_trace(SWITCH_AWAY, prev, -1);
-			moker_trace(SWITCH_TO, next, -1);
+			moker_trace(SWITCH_AWAY, prev, rq->cpu);
+			moker_trace(SWITCH_TO, next, rq->cpu);
 #endif
 #ifdef CONFIG_MOKER_SCHED_RM_POLICY
 		}

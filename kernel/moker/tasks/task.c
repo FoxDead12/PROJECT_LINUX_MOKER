@@ -42,10 +42,6 @@ int main(int argc, char** argv)
 	unsigned long long C, T, O, time0, release;
 	unsigned int task_id,njobs,i=0;
 
-for (int i = 0; argv[i] != NULL; i++) {
-    printf("argv[%d] = %s\n", i, argv[i]);
-}
-
 	struct timespec r;
 	task_id=atoi(argv[1]);
 	C=(unsigned long long)atoll(argv[2]);
@@ -65,6 +61,15 @@ for (int i = 0; argv[i] != NULL; i++) {
 	// ... set period of task to SCHED_RM ...
 	if (syscall(SYS_MOKER_RM_SET_PERIOD, T) < 0) {
 		perror("ERROR: set moker SCHED_RM period failed");
+		exit(-1);
+	}
+
+	cpu_set_t mask;
+	CPU_ZERO(&mask);
+	CPU_SET(1, &mask);  // CPU 1 — deixas o CPU 0 para o sistema
+
+	if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
+		perror("ERROR: sched_setaffinity failed");
 		exit(-1);
 	}
 

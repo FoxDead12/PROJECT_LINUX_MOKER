@@ -4,6 +4,7 @@
 struct sched_rm_entity {
 	unsigned long long period;
 	struct rb_node node;
+	struct task_struct *task;
 };
 
 #endif

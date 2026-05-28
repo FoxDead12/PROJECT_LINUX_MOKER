@@ -14,4 +14,9 @@ menu "MOKER framework"
   default y
   depends on MOKER_FRAMEWORK
 
+    config MOKER_MUTEX_PIP
+    bool "MOKER mutex policy: PIP"
+    default y
+    depends on MOKER_SCHED_RM_POLICY
+
 endmenu

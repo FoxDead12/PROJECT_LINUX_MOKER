@@ -50,19 +50,13 @@ int main(int argc, char** argv)
 	time0 = (unsigned long long)atoll(argv[5]);
 	njobs=atoi(argv[6]);
 
-
-	printf("Task(%d,%d): before SCHED_RM\n",task_id,getpid());
-	param.sched_priority = 0;
-	if((sched_setscheduler(0,SCHED_RM,&param)) == -1){
-		perror("ERROR:sched_setscheduler failed");
-		exit(-1);
-	}
-
 	// ... set period of task to SCHED_RM ...
 	if (syscall(SYS_MOKER_RM_SET_PERIOD, T) < 0) {
 		perror("ERROR: set moker SCHED_RM period failed");
 		exit(-1);
 	}
+
+	printf("Task(%d,%d): before SCHED_RM\n",task_id,getpid());
 
 	cpu_set_t mask;
 	CPU_ZERO(&mask);
@@ -70,6 +64,13 @@ int main(int argc, char** argv)
 
 	if (sched_setaffinity(0, sizeof(mask), &mask) == -1) {
 		perror("ERROR: sched_setaffinity failed");
+		exit(-1);
+	}
+
+
+	param.sched_priority = 0;
+	if((sched_setscheduler(0,SCHED_RM,&param)) == -1){
+		perror("ERROR:sched_setscheduler failed");
 		exit(-1);
 	}
 

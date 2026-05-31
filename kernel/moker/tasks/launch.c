@@ -16,7 +16,7 @@ void print_task(struct task *task)
 void print_tasks(struct task *tasks, int num)
 {
 	int i;
-	
+
 	for(i=0;i<num;i++){
 		print_task(&tasks[i]);
 	}
@@ -49,7 +49,7 @@ void get_task_info(char * str, struct task *task)
 	char *s ,*s1;
 	int i = 0;
 	s = s1 = str;
-	while(i < 5){
+	while(i < 6){
 		//printf("%d:%c\n",i,*s);
 		if(*s == ','){
 			*s='\0';
@@ -79,9 +79,13 @@ void get_task_info(char * str, struct task *task)
 					s1=s+1;
 					i++;
 				break;
-	
+				case 5:
+					task->resource=get_u32(s1);
+					s1=s+1;
+					i++;
+				break;
 			}
-			
+
 		}
 		s++;
 	}
@@ -96,10 +100,10 @@ void get_taskset_config(char *file,unsigned int*ntasks,struct task *tasks)
 	FILE* fd  = fopen(file, "r");
 	buffer[0] = 0;
 	(*ntasks) = 0;
-	
+
 	while( (fgets(buffer, BUF_SIZE, fd))!=NULL) {
 		if(buffer[0]>='0' || buffer[0]<='9'){
-			get_task_info(buffer,&tasks[i]);	
+			get_task_info(buffer,&tasks[i]);
 			i++;
 		}
 		buffer[0]=0;
@@ -113,21 +117,21 @@ void get_taskset_config(char *file,unsigned int*ntasks,struct task *tasks)
 
 }
 
-///////////////////////////////////////////////////////////////	
+///////////////////////////////////////////////////////////////
 int main(int argc, char *argv[])
 {
-	
+
 
 	pid_t pid_tasks[NR_TASKS];
 	struct task tasks[NR_TASKS];
 	unsigned int ntasks;
-	char arg[6][30];
+	char arg[7][30];
 	int status,i;
-	struct timespec t; 
+	struct timespec t;
 	unsigned long long time0;
 ///////////////////////////////////////////////////////////////
 	if(argc!=2)
-		exit(0);	
+		exit(0);
 	get_taskset_config(argv[1],&ntasks,tasks);
 	print_tasks(tasks,ntasks);
 
@@ -143,33 +147,34 @@ int main(int argc, char *argv[])
 	time0 += t.tv_nsec;
 
 	time0 += (unsigned long long)(5 * OFFSET); //for safety purposes
-	
+
 	printf("LAUNCH: time 0: %llu\n", time0);
-	
-	
+
+
 	printf("LAUNCH: Forking tasks\n");
 	for(i=0;i<ntasks;i++){
-		sprintf(arg[0],"%d",tasks[i].id);	
-		sprintf(arg[1],"%llu",tasks[i].C);	
-		sprintf(arg[2],"%llu",tasks[i].T);		
+		sprintf(arg[0],"%d",tasks[i].id);
+		sprintf(arg[1],"%llu",tasks[i].C);
+		sprintf(arg[2],"%llu",tasks[i].T);
 		sprintf(arg[3],"%llu",tasks[i].O);
-		sprintf(arg[4],"%llu",time0);	
+		sprintf(arg[4],"%llu",time0);
 		sprintf(arg[5],"%d",tasks[i].njobs);
-		
+		sprintf(arg[6],"%d",tasks[i].resource);
+
 		pid_tasks[i]=fork();
 		if(pid_tasks[i]==0){
-			execl("./task","task",arg[0],arg[1],arg[2],arg[3],arg[4],arg[5],NULL);
+			execl("./task","task",arg[0],arg[1],arg[2],arg[3],arg[4],arg[5],arg[6],NULL);
 			printf("Error: execv: task\n");
 			exit(0);
 		}
-		
+
 	}
 	printf("LAUNCH: Waiting ...\n");
 	for(i=0;i<ntasks;i++){
 		waitpid(0,&status,0);
 		if(WIFEXITED(status)){
 			printf("LAUNCH:task:%d: has finished\n",WEXITSTATUS(status));
-		}	
+		}
 	}
 	printf("LAUNCH: Disabling moker tracing\n");
 	if((syscall(SYS_MOKER_TRACING_ENABLE,0)) < 0){

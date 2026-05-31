@@ -35,6 +35,7 @@ struct task {
 	unsigned long long T; //period
 	unsigned long long O; //first job offset
 	unsigned int njobs; //number of jobs
+	int resource; //indicate if use mutex or not
 };
 
 #endif

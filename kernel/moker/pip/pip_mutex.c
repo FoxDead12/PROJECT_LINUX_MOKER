@@ -155,10 +155,10 @@ void pip_mutex_update_prio(struct task_struct* p, unsigned long long new_period)
   // ... get run queue of task
   struct rq *rq = task_rq(p);
 
-  dequeue_task_rm(rq, p, DEQUEUE_NOCLOCK);
+  dequeue_task(rq, p, DEQUEUE_NOCLOCK);
 
   p->rm.period = new_period;
 
-  enqueue_task_rm(rq, p, ENQUEUE_NOCLOCK);
+  enqueue_task(rq, p, ENQUEUE_NOCLOCK);
 
 }

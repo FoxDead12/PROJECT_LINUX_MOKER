@@ -56,6 +56,18 @@ static int dequeue (char *buffer){
       case DEQUEUE_RQ:
         strcpy(evt,"DEQ_RQ");
         break;
+      case ENQUEUE_WQ:
+        strcpy(evt,"ENQ_WQ");
+        break;
+      case DEQUEUE_WQ:
+        strcpy(evt,"DEQ_WQ");
+        break;
+      case MUTEX_LOCK:
+        strcpy(evt,"MUT_LK");
+        break;
+      case MUTEX_UNLOCK:
+        strcpy(evt,"MUT_UL");
+        break;
       default:
         strcpy(evt,"UK_EVT");
     }

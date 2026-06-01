@@ -88,16 +88,15 @@ int main(int argc, char** argv)
 
 		// ... lock mutex to work ...
 		if (resource == 1) {
-
+			syscall(SYS_MOKER_PIP_LOCK);
 		}
 
 		do_work(C);
 
 		// ... release mutex to work ...
 		if (resource == 1) {
-
+			syscall(SYS_MOKER_PIP_UNLOCK);
 		}
-
 
 		//computes the next release
 		release += T;

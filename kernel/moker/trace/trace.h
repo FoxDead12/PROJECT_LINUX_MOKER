@@ -12,7 +12,11 @@ enum evt{
   SWITCH_AWAY,
   SWITCH_TO,
   ENQUEUE_RQ,
-  DEQUEUE_RQ
+  DEQUEUE_RQ,
+  ENQUEUE_WQ,
+  DEQUEUE_WQ,
+  MUTEX_LOCK,
+  MUTEX_UNLOCK,
 };
 
 struct trace_evt{

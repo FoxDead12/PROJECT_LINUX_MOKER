@@ -16,15 +16,58 @@ void pip_mutex_init (void) {
   wq.owner = NULL;
 }
 
-void pip_mutex_lock(struct pip_mutex*) {
+void pip_mutex_lock () {
 
   struct task_struct *p = current;
+  int scheduler_update = false;
 
-  while( !atomic_add_unless(&wq.flag, 1, 1) ){
-    set_current_state(TASK_INTERRUPTIBLE);
+  if ( !atomic_add_unless(&wq.flag, 1, 1) ) {
+
+    // Task can't take mutex
+
+    raw_spin_lock(&wq.lock);
+
+    if (wq.owner) {
+      if ( p->rm.period < wq.owner->rm.period ) {
+        wq.owner_original_period = wq.owner->rm.period;
+        scheduler_update = true;
+      }
+    }
+
+    raw_spin_unlock(&wq.lock);
+
+    if (scheduler_update) {
+      pip_mutex_update_prio(wq.owner, p->rm.period);
+    }
+
     pip_mutex_enqueue(p);
-    schedule();
+
+    // Task will wait to get mutex
+    for (;;) {
+      // ... force task to set status sleep
+      set_current_state(TASK_INTERRUPTIBLE);
+
+      // ... check if win mutex/resource
+      if ( atomic_add_unless(&wq.flag, 1, 1) ) {
+        break;
+      }
+
+      // ... sleep ...
+      schedule();
+    }
+
+    set_current_state(TASK_RUNNING);
+
   }
+
+  raw_spin_lock(&wq.lock);
+  wq.owner = p;
+  raw_spin_unlock(&wq.lock);
+
+
+#ifdef CONFIG_MOKER_TRACING
+  moker_trace(MUTEX_LOCK, p, -1);
+#endif
 
 }
 

@@ -27,8 +27,7 @@
 
 #define SYS_MOKER_TRACING_ENABLE 471
 #define SYS_MOKER_RM_SET_PERIOD 472
-#define SYS_MOKER_PIP_LOCK 473
-#define SYS_MOKER_PIP_UNLOCK 474
+
 
 struct task {
 	int id;

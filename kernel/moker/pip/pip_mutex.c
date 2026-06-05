@@ -3,8 +3,6 @@
 #include <asm/uaccess.h>
 #include "pip_mutex.h"
 
-#include "../../sched/sched.h"
-#include "../trace/trace.h"
 
 struct pip_mutex_wq wq;
 
@@ -16,29 +14,11 @@ void pip_mutex_init (void) {
   atomic_set(&wq.flag, 0);
 
   wq.owner = NULL;
-  wq.owner_original_period = -1;
 }
 
-void pip_mutex_lock() {
+void pip_mutex_lock(struct pip_mutex*) {
 
   struct task_struct *p = current;
-  int scheduler_update = false;
-
-  if ( atomic_add_unless(&wq.flag, 1, 1) ) {
-    wq.owner = p;
-    return;
-  }
-
-  raw_spin_lock(&wq.lock);
-  if (wq.owner) {
-    if ( p->rm.period < wq.owner->rm.period ) {
-      wq.owner_original_period = wq.owner->rm.period;
-      scheduler_update = true;
-    }
-  }
-  raw_spin_unlock(&wq.lock);
-
-  if (scheduler_update) pip_mutex_update_prio(wq.owner, p->rm.period);
 
   while( !atomic_add_unless(&wq.flag, 1, 1) ){
     set_current_state(TASK_INTERRUPTIBLE);
@@ -46,40 +26,23 @@ void pip_mutex_lock() {
     schedule();
   }
 
-#ifdef CONFIG_MOKER_TRACING
-  moker_trace(MUTEX_LOCK, p, -1);
-#endif
-
 }
 
-void pip_mutex_unlock() {
+void pip_mutex_unlock(struct pip_mutex*) {
 
   struct task_struct *p = current;
   struct task_struct *t = NULL;
 
-  // I/owner someone change my period need reset
-  if (wq.owner_original_period != -1) {
-    pip_mutex_update_prio(wq.owner, wq.owner_original_period);
-  }
-
-  raw_spin_lock(&wq.lock);
-  wq.owner = NULL;
-  wq.owner_original_period = -1;
-  raw_spin_unlock(&wq.lock);
-
   t = pip_mutex_dequeue();
 
-  if (t) {
-    if (!wake_up_process(t)) {
+  if(t){
+    if(!wake_up_process(t)){
       printk(KERN_ERR "BUG: wake up process failed: %d\n",t->pid);
     }
   }
 
   atomic_set(&wq.flag,0);
 
-#ifdef CONFIG_MOKER_TRACING
-  moker_trace(MUTEX_UNLOCK, p, -1);
-#endif
 }
 
 int pip_mutex_enqueue (struct task_struct *p) {
@@ -100,7 +63,7 @@ int pip_mutex_enqueue (struct task_struct *p) {
 
     parent = *new;
     p_period = p->rm.period;
-    n_period = node->task->rm.period;
+    n_period = node->task.rm.period;
 
     if ( p_period < n_period ) {
       /* left */
@@ -116,11 +79,6 @@ int pip_mutex_enqueue (struct task_struct *p) {
 
   raw_spin_unlock(&wq.lock);
 
-#ifdef CONFIG_MOKER_TRACING
-  moker_trace(ENQUEUE_WQ, p, -1);
-#endif
-
-  return 0;
 }
 
 struct task_struct* pip_mutex_dequeue (void) {
@@ -143,22 +101,5 @@ struct task_struct* pip_mutex_dequeue (void) {
 
   raw_spin_unlock(&wq.lock);
 
-#ifdef CONFIG_MOKER_TRACING
-  if(p) {
-    moker_trace(DEQUEUE_WQ, p, -1);
-  }
-#endif
   return p;
-}
-
-void pip_mutex_update_prio(struct task_struct* p, unsigned long long new_period) {
-  // ... get run queue of task
-  struct rq *rq = task_rq(p);
-
-  dequeue_task(rq, p, DEQUEUE_NOCLOCK);
-
-  p->rm.period = new_period;
-
-  enqueue_task(rq, p, ENQUEUE_NOCLOCK);
-
 }

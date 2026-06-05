@@ -8638,10 +8638,6 @@ void __init sched_init(void)
 	autogroup_init(&init_task);
 #endif /* CONFIG_CGROUP_SCHED */
 
-#ifdef CONFIG_MOKER_MUTEX_PIP
-		pip_mutex_init();
-#endif
-
 	for_each_possible_cpu(i) {
 		struct rq *rq;
 

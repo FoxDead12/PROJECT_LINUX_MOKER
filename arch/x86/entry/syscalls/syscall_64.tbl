@@ -401,10 +401,6 @@
 #ifdef CONFIG_MOKER_SCHED_RM_POLICY
 472 common moker_rm_set_period sys_moker_rm_set_period
 #endif
-#ifdef CONFIG_MOKER_MUTEX_PIP
-473 common moker_pip_mutex_lock sys_moker_pip_mutex_lock
-474 common moker_pip_mutex_unlock sys_moker_pip_mutex_unlock
-#endif
 
 #
 # Due to a historical design error, certain syscalls are numbered differently
